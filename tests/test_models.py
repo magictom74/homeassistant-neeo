@@ -80,6 +80,36 @@ class TestDevice:
         d = Device.from_raw({"key": "d", "name": "X", "roomKey": "r", "devicetype": "DVD"})
         assert d.device_type == "DVD"
 
+    def test_details_subobject_real_brain_shape(self) -> None:
+        # Captured shape from a real Brain (firmware 0.53.9):
+        # manufacturer/type/model live under a `details` sub-object,
+        # the top-level `name` is the user-given device name.
+        d = Device.from_raw({
+            "key": "6332958388544077824",
+            "name": "AV Receiver",
+            "roomKey": "r1",
+            "roomName": "Living",
+            "details": {
+                "manufacturer": "Denon",
+                "type": "AVRECEIVER",
+                "name": "AVR-4520 AVR",
+                "adapterName": "avreceiver",
+            },
+        })
+        assert d.name == "AV Receiver"
+        assert d.manufacturer == "Denon"
+        assert d.device_type == "AVRECEIVER"
+        assert d.model == "AVR-4520 AVR"
+
+    def test_details_does_not_override_top_level(self) -> None:
+        # Top-level fields win over details (convenience endpoint case).
+        d = Device.from_raw({
+            "key": "d", "name": "X", "roomKey": "r",
+            "manufacturer": "TopLevel",
+            "details": {"manufacturer": "Nested"},
+        })
+        assert d.manufacturer == "TopLevel"
+
     def test_macros_as_dict_payload(self) -> None:
         # Some responses use a dict-of-macros instead of a list
         d = Device.from_raw({
@@ -218,6 +248,23 @@ class TestBrain:
         assert b.all_recipes == ()
         assert b.all_devices == ()
 
+    def test_user_rooms_filters_out_empties(self) -> None:
+        # Brain ships with a default catalogue (Kitchen, Outdoor, ...)
+        # that the user often doesn't populate. user_rooms drops those.
+        b = Brain.from_raw({
+            "rooms": [
+                {"key": "r1", "name": "Living", "devices": [{"key": "d1", "name": "TV"}]},
+                {"key": "r2", "name": "Kitchen"},  # empty default room
+                {"key": "r3", "name": "Bedroom",
+                 "recipes": [{"key": "rec", "type": "launch", "name": "Sleep", "roomKey": "r3"}]},
+                {"key": "r4", "name": "Outdoor"},  # empty default room
+            ],
+        })
+        assert len(b.rooms) == 4
+        user = b.user_rooms
+        assert len(user) == 2
+        assert {r.name for r in user} == {"Living", "Bedroom"}
+
 
 class TestSystemInfo:
     def test_parses_full(self) -> None:
@@ -236,6 +283,29 @@ class TestSystemInfo:
     def test_uptime_missing(self) -> None:
         info = SystemInfo.from_raw({"hostname": "x"})
         assert info.uptime_seconds is None
+
+    def test_real_brain_shape(self) -> None:
+        # Captured from a real Brain (firmware 0.53.9). Hardware is
+        # assembled from hardwareType/Region/Revision; IPs come from
+        # lanip/wlanip rather than ipLan/ipWlan.
+        info = SystemInfo.from_raw({
+            "hostname": "NEEO-abc12345",
+            "firmwareVersion": "0.53.9-20180424-02ae61b",
+            "hardwareType": "NEEO",
+            "hardwareRegion": "EU",
+            "hardwareRevision": 5,
+            "lanip": "192.168.1.10",
+            "wlanip": "192.168.1.11",
+            "uptime": 16556701,
+        })
+        assert info.hostname == "NEEO-abc12345"
+        assert info.firmware.startswith("0.53.9")
+        assert "NEEO" in info.hardware
+        assert "EU" in info.hardware
+        assert "Rev 5" in info.hardware
+        assert info.ip_lan == "192.168.1.10"
+        assert info.ip_wlan == "192.168.1.11"
+        assert info.uptime_seconds == 16556701
 
 
 class TestImmutability:

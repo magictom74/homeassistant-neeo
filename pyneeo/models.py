@@ -88,14 +88,33 @@ class Device:
         macros = tuple(
             Macro.from_raw(m) for m in macros_raw if isinstance(m, dict)
         )
+        # Real Brain (firmware 0.53.9) nests manufacturer / type / model
+        # under `details`. The flat-shape lookups remain as a fallback
+        # for the `/v1/api/Recipes` convenience endpoint which uses
+        # different field names ("manufacturer", "model", "devicetype").
+        details_raw = raw.get("details")
+        details: dict[str, Any] = details_raw if isinstance(details_raw, dict) else {}
+        manufacturer = (
+            _str(raw.get("manufacturer"))
+            or _str(details.get("manufacturer"))
+        )
+        # `details.name` is the manufacturer's model designation
+        # (e.g. "AVR-4520 AVR"); top-level `model` from the
+        # convenience endpoint also works.
+        model = _str(raw.get("model")) or _str(details.get("name"))
+        device_type = (
+            _str(raw.get("type"))
+            or _str(raw.get("devicetype"))
+            or _str(details.get("type"))
+        )
         return cls(
             key=_str(raw.get("key")),
             name=_str(raw.get("name")),
             room_key=_str(raw.get("roomKey"), default=room_key),
             room_name=_str(raw.get("roomName"), default=room_name),
-            manufacturer=_str(raw.get("manufacturer")),
-            model=_str(raw.get("model")),
-            device_type=_str(raw.get("type") or raw.get("devicetype")),
+            manufacturer=manufacturer,
+            model=model,
+            device_type=device_type,
             macros=macros,
         )
 
@@ -302,6 +321,18 @@ class Brain:
     def all_devices(self) -> tuple[Device, ...]:
         return tuple(d for room in self.rooms for d in room.devices)
 
+    @property
+    def user_rooms(self) -> tuple[Room, ...]:
+        """Only rooms the user has actually configured.
+
+        The Brain ships with a fixed catalogue of room names
+        (``Kitchen``, ``Bedroom``, ``Bathroom``, ..., ``Outdoor``) and
+        returns *all* of them from ``/v1/projects/home``, whether the
+        user has assigned anything to them or not. For UI purposes we
+        only care about the ones with at least one device or recipe.
+        """
+        return tuple(r for r in self.rooms if r.devices or r.recipes)
+
     def get_room(self, key: str) -> Room | None:
         for r in self.rooms:
             if r.key == key:
@@ -348,11 +379,24 @@ class SystemInfo:
             uptime_seconds = int(uptime)
         else:
             uptime_seconds = None
+        # ``hardware`` isn't a single field on the Brain - assemble it
+        # from the three hardware* fields the real firmware actually
+        # emits, with the older single-key shape as a fallback.
+        hardware = _str(raw.get("hardware") or raw.get("hardwareName"))
+        if not hardware:
+            parts = [
+                _str(raw.get("hardwareType")),
+                _str(raw.get("hardwareRegion")),
+            ]
+            rev = raw.get("hardwareRevision")
+            if rev is not None:
+                parts.append(f"Rev {rev}")
+            hardware = " ".join(p for p in parts if p)
         return cls(
             hostname=_str(raw.get("hostname") or raw.get("airkey")),
             firmware=_str(raw.get("firmwareVersion") or raw.get("firmware")),
-            hardware=_str(raw.get("hardware") or raw.get("hardwareName")),
-            ip_lan=_str(raw.get("ipLan") or raw.get("ip")),
-            ip_wlan=_str(raw.get("ipWlan")),
+            hardware=hardware,
+            ip_lan=_str(raw.get("lanip") or raw.get("ipLan") or raw.get("ip")),
+            ip_wlan=_str(raw.get("wlanip") or raw.get("ipWlan")),
             uptime_seconds=uptime_seconds,
         )

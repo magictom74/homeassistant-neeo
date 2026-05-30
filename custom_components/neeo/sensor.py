@@ -27,7 +27,9 @@ async def async_setup_entry(
         return
 
     entities: list[SensorEntity] = []
-    for room in coordinator.data.rooms:
+    # Only expose rooms the user has actually populated. The Brain
+    # ships with a fixed catalogue and returns all the unused ones too.
+    for room in coordinator.data.user_rooms:
         entities.append(NeeoActiveRecipeSensor(coordinator, room.key, room.name))
     entities.append(NeeoLastEventSensor(coordinator))
     async_add_entities(entities)
