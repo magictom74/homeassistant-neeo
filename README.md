@@ -50,6 +50,12 @@ install via HACS once published) and add it from the Integrations UI:
 - **Sensors** - active recipe per room, plus a diagnostics sensor for
   the timestamp of the last Brain push.
 - **Binary sensor** - Brain reachability.
+- **Power switches** - one `switch.<room>_power` per room plus a
+  `switch.power_global`. ON launches the per-room default recipe you
+  configured in the OptionsFlow; OFF triggers the poweroff partner
+  of whatever recipe is currently active in the room. The global
+  switch opts rooms in for ON individually; OFF always affects every
+  room. Configure defaults under Integration -> Configure.
 - **Services** - `neeo.execute_recipe`, `neeo.trigger_macro`.
 - **HA bus events** - `neeo_recipe_launched`, `neeo_recipe_poweroff`,
   `neeo_macro_triggered`. Use these as automation triggers to react

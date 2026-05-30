@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -28,7 +29,12 @@ from pyneeo import (
     Room,
 )
 
-from .const import DOMAIN
+from .const import (
+    CONF_DEFAULT_RECIPE_KEY,
+    CONF_IN_GLOBAL_TOGGLE,
+    CONF_ROOMS,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,17 +47,18 @@ class NeeoCoordinator(DataUpdateCoordinator[Brain]):
         hass: HomeAssistant,
         client: NeeoBrainClient,
         *,
-        entry_id: str,
+        entry: ConfigEntry,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}:{entry_id}",
+            name=f"{DOMAIN}:{entry.entry_id}",
             # update_interval=None - we are push-driven, see module docstring
             update_interval=None,
         )
         self.client = client
-        self.entry_id = entry_id
+        self.entry = entry
+        self.entry_id = entry.entry_id
         # room_key -> recipe name currently considered active
         self._active_recipes: dict[str, str] = {}
         self._last_event_at: datetime | None = None
@@ -142,6 +149,80 @@ class NeeoCoordinator(DataUpdateCoordinator[Brain]):
         if self._brain_online:
             self._brain_online = False
             self.async_update_listeners()
+
+    # ------------------------------------------------------------------
+    # power-toggle helpers
+    # ------------------------------------------------------------------
+
+    def _room_options(self, room_key: str) -> dict[str, Any]:
+        rooms_opts = self.entry.options.get(CONF_ROOMS, {})
+        if isinstance(rooms_opts, dict):
+            value = rooms_opts.get(room_key)
+            if isinstance(value, dict):
+                return value
+        return {}
+
+    def default_recipe_for(self, room_key: str) -> Recipe | None:
+        """The recipe a Power-Switch turn_on triggers for this room.
+
+        Returns ``None`` if the user hasn't picked one yet, or if the
+        key they picked no longer exists on the Brain (recipe was
+        deleted in the NEEO app).
+        """
+        key = self._room_options(room_key).get(CONF_DEFAULT_RECIPE_KEY) or ""
+        if not key or self.data is None:
+            return None
+        recipe = self.data.get_recipe(key)
+        return recipe if recipe is not None and recipe.is_launch else None
+
+    def is_room_in_global_on(self, room_key: str) -> bool:
+        """Whether Global-Power-ON should also start this room."""
+        return bool(self._room_options(room_key).get(CONF_IN_GLOBAL_TOGGLE, False))
+
+    def room_keys_for_global_on(self) -> tuple[str, ...]:
+        if self.data is None:
+            return ()
+        return tuple(
+            r.key for r in self.data.user_rooms if self.is_room_in_global_on(r.key)
+        )
+
+    def active_launch_recipe_for(self, room_key: str) -> Recipe | None:
+        """Find the launch-Recipe corresponding to the currently-active recipe.
+
+        We only track the active recipe by *name* (that's what the
+        Brain pushes in forward actions). To act on it we need to
+        look up the full Recipe so we can chain to its poweroff pair.
+        """
+        name = self._active_recipes.get(room_key)
+        if not name:
+            return None
+        room = self.get_room(room_key)
+        if room is None:
+            return None
+        for r in room.recipes:
+            if r.is_launch and r.name == name:
+                return r
+        return None
+
+    def paired_poweroff_for(self, launch: Recipe) -> Recipe | None:
+        """Find the poweroff-Recipe paired with *launch* via ``scenario_key``.
+
+        Returns ``None`` for custom one-shot launches (e.g. ``TV Play``)
+        that have no poweroff counterpart. Callers should warn and no-op
+        in that case.
+        """
+        if not launch.scenario_key:
+            return None
+        room = self.get_room(launch.room_key)
+        if room is None:
+            return None
+        for r in room.recipes:
+            if r.is_poweroff and r.scenario_key == launch.scenario_key:
+                return r
+        return None
+
+    def is_room_on(self, room_key: str) -> bool:
+        return self._active_recipes.get(room_key) is not None
 
     # ------------------------------------------------------------------
     # service helpers

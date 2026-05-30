@@ -23,6 +23,17 @@
       "cannot_connect": "Cannot reach the discovered Brain."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Per-room power-toggle settings",
+        "description": "Pick a default recipe and decide whether each room joins the Global-Power-ON. Global-Power-OFF always affects every room.\n\n{room_count} rooms configured."
+      }
+    },
+    "abort": {
+      "brain_not_ready": "Brain inventory not loaded yet - retry once the Brain is reachable."
+    }
+  },
   "services": {
     "execute_recipe": {
       "name": "Execute Recipe",

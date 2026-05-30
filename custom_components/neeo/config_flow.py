@@ -7,9 +7,22 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.components.zeroconf import ZeroconfServiceInfo
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import (
+    BooleanSelector,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from pyneeo import (
     DEFAULT_PORT,
@@ -18,8 +31,13 @@ from pyneeo import (
     NeeoTimeoutError,
 )
 
+from .const import (
+    CONF_DEFAULT_RECIPE_KEY,
+    CONF_IN_GLOBAL_TOGGLE,
+    CONF_ROOMS,
+    DOMAIN,
+)
 from .const import DEFAULT_PORT as INTEGRATION_DEFAULT_PORT
-from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +61,11 @@ class NeeoConfigFlow(ConfigFlow, domain=DOMAIN):
     """
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(entry: ConfigEntry) -> NeeoOptionsFlow:
+        return NeeoOptionsFlow(entry)
 
     def __init__(self) -> None:
         self._discovered_host: str | None = None
@@ -150,3 +173,96 @@ class NeeoConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Fallback: use host:port. Less ideal across DHCP changes.
         return f"{host}:{port}"
+
+
+class NeeoOptionsFlow(OptionsFlow):
+    """Per-room default recipe + global-on opt-in.
+
+    The form is built dynamically from the Brain's inventory so that
+    each room only offers its own launch-typed, non-hidden recipes
+    in the dropdown. Stored shape::
+
+        options = {
+          "rooms": {
+            "<room_key>": {
+              "default_recipe_key": "<recipe_key>",  # empty = no default
+              "in_global_toggle": True/False,
+            }
+          }
+        }
+    """
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        self.config_entry = entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
+        brain = coordinator.data
+        if brain is None:
+            return self.async_abort(reason="brain_not_ready")
+
+        user_rooms = brain.user_rooms
+
+        if user_input is not None:
+            rooms_options: dict[str, dict[str, Any]] = {}
+            for room in user_rooms:
+                rooms_options[room.key] = {
+                    CONF_DEFAULT_RECIPE_KEY: user_input.get(
+                        f"default_{room.key}", ""
+                    ),
+                    CONF_IN_GLOBAL_TOGGLE: bool(
+                        user_input.get(f"global_{room.key}", False)
+                    ),
+                }
+            return self.async_create_entry(
+                title="", data={CONF_ROOMS: rooms_options}
+            )
+
+        current = self.config_entry.options.get(CONF_ROOMS, {})
+        if not isinstance(current, dict):
+            current = {}
+
+        schema_dict: dict[Any, Any] = {}
+        for room in user_rooms:
+            current_room = current.get(room.key, {}) if isinstance(current, dict) else {}
+            current_default = (
+                current_room.get(CONF_DEFAULT_RECIPE_KEY, "")
+                if isinstance(current_room, dict)
+                else ""
+            )
+            current_in_global = bool(
+                current_room.get(CONF_IN_GLOBAL_TOGGLE, False)
+                if isinstance(current_room, dict)
+                else False
+            )
+
+            recipe_choices: list[SelectOptionDict] = [
+                SelectOptionDict(value="", label="(none)"),
+            ]
+            for r in room.recipes:
+                if r.is_launch and not r.is_hidden:
+                    recipe_choices.append(
+                        SelectOptionDict(value=r.key, label=r.name)
+                    )
+
+            schema_dict[
+                vol.Optional(f"default_{room.key}", default=current_default)
+            ] = SelectSelector(
+                SelectSelectorConfig(
+                    options=recipe_choices,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            )
+            schema_dict[
+                vol.Optional(f"global_{room.key}", default=current_in_global)
+            ] = BooleanSelector()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema_dict),
+            description_placeholders={
+                "room_count": str(len(user_rooms)),
+            },
+        )

@@ -40,6 +40,7 @@ PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.SCENE,
     Platform.SENSOR,
+    Platform.SWITCH,
 ]
 
 EXECUTE_RECIPE_SCHEMA = vol.Schema(
@@ -65,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     client = NeeoBrainClient(host, port=port)
 
-    coordinator = NeeoCoordinator(hass, client, entry_id=entry.entry_id)
+    coordinator = NeeoCoordinator(hass, client, entry=entry)
     try:
         await coordinator.async_config_entry_first_refresh()
     except (NeeoConnectionError, NeeoTimeoutError) as exc:

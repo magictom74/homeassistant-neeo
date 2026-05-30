@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Power-toggle switches** in the HA integration:
+  - `switch.<room>_power` per populated room. ON triggers the user-picked
+    default recipe; OFF triggers the poweroff partner of whatever
+    recipe is currently active in the room (matched via
+    ``scenario_key``).
+  - `switch.power_global` per Brain. ON triggers default recipes only
+    in rooms the user opted into the global toggle; OFF affects every
+    populated room with an active recipe, opt-in or not - "off is
+    always off".
+  - OptionsFlow exposes the per-room default-recipe dropdown plus the
+    global-on opt-in checkbox.
+  - Active recipes without a poweroff partner (e.g. CUSTOM
+    `TV Play` one-shots) are logged-and-skipped on turn_off instead
+    of triggering the wrong recipe.
+
+### Added
+
 - **HA custom integration** (`custom_components/neeo/`):
   - `manifest.json` with zeroconf discovery on `_neeo._tcp.local.`,
     `iot_class: local_push`, requires `pyneeo==0.1.0`.

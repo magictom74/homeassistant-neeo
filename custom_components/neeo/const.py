@@ -26,3 +26,8 @@ EVENT_MACRO_TRIGGERED: Final = "neeo_macro_triggered"
 # Service names
 SERVICE_EXECUTE_RECIPE: Final = "execute_recipe"
 SERVICE_TRIGGER_MACRO: Final = "trigger_macro"
+
+# Options-flow keys
+CONF_ROOMS: Final = "rooms"
+CONF_DEFAULT_RECIPE_KEY: Final = "default_recipe_key"
+CONF_IN_GLOBAL_TOGGLE: Final = "in_global_toggle"
