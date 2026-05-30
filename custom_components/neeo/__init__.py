@@ -32,6 +32,7 @@ from .const import (
     SERVICE_EXECUTE_RECIPE,
     SERVICE_TRIGGER_MACRO,
 )
+from . import config_flow  # noqa: F401 - pre-import to avoid sync import_module in event loop
 from .coordinator import NeeoCoordinator
 
 _LOGGER = logging.getLogger(__name__)
