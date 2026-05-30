@@ -1,0 +1,57 @@
+name: Bug report
+description: Something works differently than expected against a real NEEO Brain
+labels: ["bug"]
+body:
+  - type: input
+    id: pyneeo-version
+    attributes:
+      label: pyneeo version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.12.1"
+    validations:
+      required: true
+  - type: input
+    id: brain-firmware
+    attributes:
+      label: NEEO Brain firmware
+      description: Output of `GET /systeminfo` "firmware" / "firmwareVersion" field
+      placeholder: "0.53.9-20180424"
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Reproducer
+      description: |
+        Minimal code or commands that show the issue. Ideally the
+        smallest snippet that fails.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the raw Brain response or push payload if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Output with `logging.basicConfig(level=logging.DEBUG)` set on the
+        `pyneeo` logger. Remove anything sensitive.
+      render: shell
