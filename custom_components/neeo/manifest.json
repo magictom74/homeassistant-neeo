@@ -1,14 +1,14 @@
 {
   "domain": "neeo",
   "name": "NEEO Smart Remote",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "documentation": "https://github.com/magictom74/homeassistant-neeo",
   "issue_tracker": "https://github.com/magictom74/homeassistant-neeo/issues",
   "codeowners": ["@magictom74"],
   "config_flow": true,
   "iot_class": "local_push",
   "integration_type": "hub",
-  "requirements": ["pyneeo @ git+https://github.com/magictom74/homeassistant-neeo.git@v0.1.5"],
+  "requirements": ["pyneeo @ git+https://github.com/magictom74/homeassistant-neeo.git@v0.1.6"],
   "zeroconf": ["_neeo._tcp.local."],
   "dependencies": ["http"],
   "after_dependencies": []

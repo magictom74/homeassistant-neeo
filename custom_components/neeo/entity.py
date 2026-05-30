@@ -48,11 +48,15 @@ def _brain_device_info(entry: ConfigEntry) -> DeviceInfo:
 
 
 def _room_device_info(entry: ConfigEntry, room_key: str, room_name: str) -> DeviceInfo:
+    display = room_name if room_name else f"Room {room_key}"
     return DeviceInfo(
         identifiers={room_identifier(entry.entry_id, room_key)},
         manufacturer="NEEO",
-        model="NEEO Room",
-        name=f"NEEO {room_name}" if room_name else f"NEEO Room {room_key}",
+        # Model carries the room name so HA's Device-info detail panel
+        # (which shows model prominently) makes each room distinct
+        # instead of all looking like "NEEO Room".
+        model=f"NEEO Room - {display}",
+        name=f"NEEO {display}",
         via_device=brain_identifier(entry.entry_id),
     )
 
