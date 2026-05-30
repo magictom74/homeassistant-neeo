@@ -66,7 +66,10 @@ class NeeoConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(entry: ConfigEntry) -> NeeoOptionsFlow:
-        return NeeoOptionsFlow(entry)
+        # HA 2024.11+: the framework sets self.config_entry on the
+        # returned instance via a read-only property; we don't pass
+        # it in or set it ourselves.
+        return NeeoOptionsFlow()
 
     def __init__(self) -> None:
         self._discovered_host: str | None = None
@@ -195,8 +198,6 @@ class NeeoOptionsFlow(OptionsFlow):
         }
     """
 
-    def __init__(self, entry: ConfigEntry) -> None:
-        self.config_entry = entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
