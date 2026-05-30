@@ -8,7 +8,7 @@
   "config_flow": true,
   "iot_class": "local_push",
   "integration_type": "hub",
-  "requirements": ["pyneeo==0.1.0"],
+  "requirements": ["pyneeo @ git+https://github.com/magictom74/homeassistant-neeo.git@v0.1.0"],
   "zeroconf": ["_neeo._tcp.local."],
   "dependencies": ["http"],
   "after_dependencies": []
