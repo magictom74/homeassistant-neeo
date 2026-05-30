@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a NEEO Brain",
+        "description": "Enter the Brain's LAN IP. The default port is 3000.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "confirm": {
+        "title": "Confirm Brain",
+        "description": "Add NEEO Brain {name} at {host}?"
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the Brain at that address.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This Brain is already configured.",
+      "cannot_connect": "Cannot reach the discovered Brain."
+    }
+  },
+  "services": {
+    "execute_recipe": {
+      "name": "Execute Recipe",
+      "description": "Trigger a NEEO recipe by its room and recipe keys."
+    },
+    "trigger_macro": {
+      "name": "Trigger Macro",
+      "description": "Fire a device-level macro (VOLUME UP, POWER ON, ...)."
+    }
+  }
+}

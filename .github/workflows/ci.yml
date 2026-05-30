@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
       - run: pip install --upgrade pip
       - run: pip install -e ".[dev]"
-      - run: ruff check pyneeo
+      - run: ruff check pyneeo custom_components
 
   typecheck:
     name: mypy

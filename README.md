@@ -8,9 +8,9 @@ Reverse-engineered against NEEO Brain firmware `0.53.9` (April 2018, the
 last firmware before NEEO was discontinued). All documented endpoints
 have been verified live against a real Brain.
 
-**Status:** Alpha. The library is the first thing in place; the HA
-custom-component layer lands next. The public API may still change
-before 1.0.
+**Status:** Alpha. Library and HA custom-component layer are both in
+place; live-validation against a real Brain follows. The public API
+may still change before 1.0.
 
 ## Why this exists
 
@@ -39,12 +39,23 @@ Home Assistant's modern integration patterns.
 - **Strict typing** — passes `mypy --strict`. PEP 561 `py.typed`
   marker, so downstream consumers get full type inference.
 
-Coming next (v0.2+):
+## Features (Home Assistant integration, v0.1)
 
-- HTTP listener that receives the Brain's forward-action pushes (the
-  push half of the loop; v0.1 only registers / unregisters).
-- HA `custom_components/neeo/` integration: config flow with mDNS
-  auto-discovery, scenes for recipes, events for button presses.
+Drop `custom_components/neeo/` into your HA config directory (or
+install via HACS once published) and add it from the Integrations UI:
+
+- **Zeroconf discovery** - HA finds the Brain on the LAN automatically.
+- **Scenes** - one entity per launch-typed recipe; `scene.turn_on`
+  runs the recipe.
+- **Sensors** - active recipe per room, plus a diagnostics sensor for
+  the timestamp of the last Brain push.
+- **Binary sensor** - Brain reachability.
+- **Services** - `neeo.execute_recipe`, `neeo.trigger_macro`.
+- **HA bus events** - `neeo_recipe_launched`, `neeo_recipe_poweroff`,
+  `neeo_macro_triggered`. Use these as automation triggers to react
+  to remote-button presses.
+- **Push-driven** - the Brain POSTs to a per-entry HomeAssistantView
+  (`/api/neeo/forward/<entry_id>`). No polling, no extra ports.
 
 ## Installing
 

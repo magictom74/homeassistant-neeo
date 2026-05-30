@@ -1,0 +1,41 @@
+execute_recipe:
+  name: Execute Recipe
+  description: >-
+    Trigger a NEEO recipe by its room and recipe keys. Whether the
+    Brain launches or powers off depends on the recipe's own type.
+  fields:
+    room_key:
+      name: Room key
+      description: The Brain-side key of the recipe's room.
+      required: true
+      example: "6232364701641080832"
+      selector:
+        text:
+    recipe_key:
+      name: Recipe key
+      description: The Brain-side key of the recipe.
+      required: true
+      example: "6332958412279644160"
+      selector:
+        text:
+
+trigger_macro:
+  name: Trigger Macro
+  description: >-
+    Fire a device-level macro (e.g. VOLUME UP, POWER ON) on the Brain.
+  fields:
+    room_key:
+      name: Room key
+      required: true
+      selector:
+        text:
+    device_key:
+      name: Device key
+      required: true
+      selector:
+        text:
+    macro_key:
+      name: Macro key
+      required: true
+      selector:
+        text:

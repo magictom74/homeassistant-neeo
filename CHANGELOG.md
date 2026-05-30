@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **HA custom integration** (`custom_components/neeo/`):
+  - `manifest.json` with zeroconf discovery on `_neeo._tcp.local.`,
+    `iot_class: local_push`, requires `pyneeo==0.1.0`.
+  - `config_flow.py` - user step (manual host/port) and zeroconf
+    step. Brain `hostname` is used as the stable `unique_id` so the
+    integration survives DHCP changes.
+  - `coordinator.py` - push-driven state container. Initial inventory
+    fetch via `get_project()`, then per-event updates from the
+    forward-actions view. No polling.
+  - `__init__.py` - sets up the `HomeAssistantView` at
+    `/api/neeo/forward/<entry_id>` and registers it with the Brain.
+    On teardown, unregisters and tears down platforms.
+  - **Scenes** for each launch-typed recipe (hidden recipes excluded).
+  - **Sensors** for active-recipe-per-room plus a diagnostics
+    "Last Brain Push" sensor.
+  - **Binary sensor** for Brain online status.
+  - **Services** `neeo.execute_recipe` and `neeo.trigger_macro`.
+  - **HA bus events** `neeo_recipe_launched`, `neeo_recipe_poweroff`,
+    `neeo_macro_triggered` carrying the Brain payload.
+- `hacs.json` so the integration is installable via HACS.
+
 ## [0.1.0] - 2026-05-30
 
 ### Added
