@@ -15,7 +15,6 @@ from typing import Any
 
 from homeassistant.components.scene import Scene
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -24,6 +23,7 @@ from pyneeo import Recipe
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
+from .entity import room_identifier, brain_identifier
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,16 +61,26 @@ class NeeoRecipeScene(Scene):
             "main_device_type": recipe.main_device_type,
             "scenario_key": recipe.scenario_key,
         }
-        entry = coordinator.entry
-        host = entry.data.get(CONF_HOST, "")
-        port = entry.data.get(CONF_PORT, 3000)
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.entry_id)},
-            manufacturer="NEEO",
-            model="NEEO Brain",
-            name=entry.title or "NEEO Brain",
-            configuration_url=f"http://{host}:{port}" if host else None,
-        )
+        # Each recipe lives under its room device, which itself hangs
+        # off the Brain via via_device.
+        if recipe.room_key:
+            identifier = room_identifier(coordinator.entry_id, recipe.room_key)
+            via = brain_identifier(coordinator.entry_id)
+            self._attr_device_info = DeviceInfo(
+                identifiers={identifier},
+                manufacturer="NEEO",
+                model="NEEO Room",
+                name=f"NEEO {recipe.room_name}" if recipe.room_name else "NEEO Room",
+                via_device=via,
+            )
+        else:
+            # Custom recipes with no room key fall back to the Brain
+            self._attr_device_info = DeviceInfo(
+                identifiers={brain_identifier(coordinator.entry_id)},
+                manufacturer="NEEO",
+                model="NEEO Brain",
+                name=coordinator.entry.title or "NEEO Brain",
+            )
 
     async def async_activate(self, **kwargs: Any) -> None:
         _LOGGER.debug(

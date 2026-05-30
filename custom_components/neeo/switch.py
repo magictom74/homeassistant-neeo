@@ -34,7 +34,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .entity import NeeoBrainEntity
+from .entity import NeeoBrainEntity, NeeoRoomEntity
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
@@ -59,17 +59,16 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NeeoRoomPowerSwitch(NeeoBrainEntity, SwitchEntity):
+class NeeoRoomPowerSwitch(NeeoRoomEntity, SwitchEntity):
     """ON = launch default recipe. OFF = poweroff active recipe."""
+
+    _attr_name = "Power"
 
     def __init__(
         self, coordinator: NeeoCoordinator, room_key: str, room_name: str
     ) -> None:
-        super().__init__(coordinator)
-        self._room_key = room_key
-        self._room_name = room_name
+        super().__init__(coordinator, room_key, room_name)
         self._attr_unique_id = f"{coordinator.entry_id}_room_power_{room_key}"
-        self._attr_name = f"{room_name} Power"
 
     @property
     def is_on(self) -> bool:

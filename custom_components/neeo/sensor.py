@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
-from .entity import NeeoBrainEntity
+from .entity import NeeoBrainEntity, NeeoRoomEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,17 +36,16 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NeeoActiveRecipeSensor(NeeoBrainEntity, SensorEntity):
+class NeeoActiveRecipeSensor(NeeoRoomEntity, SensorEntity):
     """Active recipe name in a room, or 'off' if none is running."""
+
+    _attr_name = "Active Recipe"
 
     def __init__(
         self, coordinator: NeeoCoordinator, room_key: str, room_name: str
     ) -> None:
-        super().__init__(coordinator)
-        self._room_key = room_key
-        self._room_name = room_name
+        super().__init__(coordinator, room_key, room_name)
         self._attr_unique_id = f"{coordinator.entry_id}_active_recipe_{room_key}"
-        self._attr_name = f"{room_name} Active Recipe"
 
     @property
     def native_value(self) -> str:
