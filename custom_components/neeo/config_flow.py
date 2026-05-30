@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -150,7 +151,9 @@ class NeeoConfigFlow(ConfigFlow, domain=DOMAIN):
         self, host: str, port: int, errors: dict[str, str]
     ) -> str | None:
         """Hit ``/systeminfo`` and return a stable unique_id, or None on failure."""
-        client = NeeoBrainClient(host, port=port)
+        # Use HA's shared httpx client - constructing our own here would
+        # load the CA bundle synchronously and trip the event-loop guard.
+        client = NeeoBrainClient(host, port=port, http_client=get_async_client(self.hass))
         try:
             info = await client.get_system_info()
         except (NeeoConnectionError, NeeoTimeoutError) as exc:

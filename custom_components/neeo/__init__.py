@@ -13,6 +13,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.network import get_url
 
 from pyneeo import (
@@ -65,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     port = entry.data.get(CONF_PORT, DEFAULT_PORT)
 
-    client = NeeoBrainClient(host, port=port)
+    client = NeeoBrainClient(host, port=port, http_client=get_async_client(hass))
 
     coordinator = NeeoCoordinator(hass, client, entry=entry)
     try:
