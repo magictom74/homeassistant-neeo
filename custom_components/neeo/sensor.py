@@ -7,12 +7,13 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
+from .entity import NeeoBrainEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,10 +36,8 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NeeoActiveRecipeSensor(CoordinatorEntity[NeeoCoordinator], SensorEntity):
+class NeeoActiveRecipeSensor(NeeoBrainEntity, SensorEntity):
     """Active recipe name in a room, or 'off' if none is running."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self, coordinator: NeeoCoordinator, room_key: str, room_name: str
@@ -46,7 +45,7 @@ class NeeoActiveRecipeSensor(CoordinatorEntity[NeeoCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._room_key = room_key
         self._room_name = room_name
-        self._attr_unique_id = f"neeo_active_recipe_{room_key}"
+        self._attr_unique_id = f"{coordinator.entry_id}_active_recipe_{room_key}"
         self._attr_name = f"{room_name} Active Recipe"
 
     @property
@@ -59,16 +58,16 @@ class NeeoActiveRecipeSensor(CoordinatorEntity[NeeoCoordinator], SensorEntity):
         return {"room_key": self._room_key, "room_name": self._room_name}
 
 
-class NeeoLastEventSensor(CoordinatorEntity[NeeoCoordinator], SensorEntity):
+class NeeoLastEventSensor(NeeoBrainEntity, SensorEntity):
     """Wall-clock of the last Brain push, exposed for diagnostics."""
 
-    _attr_has_entity_name = True
     _attr_name = "Last Brain Push"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: NeeoCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"neeo_last_event_{coordinator.entry_id}"
+        self._attr_unique_id = f"{coordinator.entry_id}_last_event"
 
     @property
     def native_value(self) -> str:

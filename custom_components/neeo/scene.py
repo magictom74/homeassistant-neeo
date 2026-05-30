@@ -15,7 +15,9 @@ from typing import Any
 
 from homeassistant.components.scene import Scene
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from pyneeo import Recipe
@@ -50,7 +52,7 @@ class NeeoRecipeScene(Scene):
     def __init__(self, coordinator: NeeoCoordinator, recipe: Recipe) -> None:
         self._coordinator = coordinator
         self._recipe = recipe
-        self._attr_unique_id = f"neeo_recipe_{recipe.key}"
+        self._attr_unique_id = f"{coordinator.entry_id}_recipe_{recipe.key}"
         self._attr_name = recipe.name
         self._attr_extra_state_attributes = {
             "recipe_key": recipe.key,
@@ -59,6 +61,16 @@ class NeeoRecipeScene(Scene):
             "main_device_type": recipe.main_device_type,
             "scenario_key": recipe.scenario_key,
         }
+        entry = coordinator.entry
+        host = entry.data.get(CONF_HOST, "")
+        port = entry.data.get(CONF_PORT, 3000)
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.entry_id)},
+            manufacturer="NEEO",
+            model="NEEO Brain",
+            name=entry.title or "NEEO Brain",
+            configuration_url=f"http://{host}:{port}" if host else None,
+        )
 
     async def async_activate(self, **kwargs: Any) -> None:
         _LOGGER.debug(

@@ -34,7 +34,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from .entity import NeeoBrainEntity
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
@@ -59,10 +59,8 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NeeoRoomPowerSwitch(CoordinatorEntity[NeeoCoordinator], SwitchEntity):
+class NeeoRoomPowerSwitch(NeeoBrainEntity, SwitchEntity):
     """ON = launch default recipe. OFF = poweroff active recipe."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self, coordinator: NeeoCoordinator, room_key: str, room_name: str
@@ -70,7 +68,7 @@ class NeeoRoomPowerSwitch(CoordinatorEntity[NeeoCoordinator], SwitchEntity):
         super().__init__(coordinator)
         self._room_key = room_key
         self._room_name = room_name
-        self._attr_unique_id = f"neeo_room_power_{room_key}"
+        self._attr_unique_id = f"{coordinator.entry_id}_room_power_{room_key}"
         self._attr_name = f"{room_name} Power"
 
     @property
@@ -130,15 +128,14 @@ class NeeoRoomPowerSwitch(CoordinatorEntity[NeeoCoordinator], SwitchEntity):
         await self.coordinator.execute_recipe(poweroff.room_key, poweroff.key)
 
 
-class NeeoGlobalPowerSwitch(CoordinatorEntity[NeeoCoordinator], SwitchEntity):
+class NeeoGlobalPowerSwitch(NeeoBrainEntity, SwitchEntity):
     """Global power: ON only opt-in rooms, OFF every room with active state."""
 
-    _attr_has_entity_name = True
     _attr_name = "Global Power"
 
     def __init__(self, coordinator: NeeoCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"neeo_global_power_{coordinator.entry_id}"
+        self._attr_unique_id = f"{coordinator.entry_id}_global_power"
 
     @property
     def is_on(self) -> bool:

@@ -9,10 +9,10 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import NeeoCoordinator
+from .entity import NeeoBrainEntity
 
 
 async def async_setup_entry(
@@ -24,16 +24,15 @@ async def async_setup_entry(
     async_add_entities([NeeoBrainOnlineSensor(coordinator)])
 
 
-class NeeoBrainOnlineSensor(CoordinatorEntity[NeeoCoordinator], BinarySensorEntity):
+class NeeoBrainOnlineSensor(NeeoBrainEntity, BinarySensorEntity):
     """Reflects whether the Brain has been reachable recently."""
 
-    _attr_has_entity_name = True
-    _attr_name = "Brain Online"
+    _attr_name = "Online"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, coordinator: NeeoCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"neeo_brain_online_{coordinator.entry_id}"
+        self._attr_unique_id = f"{coordinator.entry_id}_brain_online"
 
     @property
     def is_on(self) -> bool:
